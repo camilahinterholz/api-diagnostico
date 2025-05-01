@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
 dotenv.config();
 const app = express();
@@ -18,10 +18,10 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar MongoDB:', err));
 
-// Configuração da OpenAI
-const openai = new OpenAIApi(new Configuration({
+// Instância da OpenAI (versão nova)
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
 // Rota principal da API
 app.post('/api/quiz', async (req, res) => {
@@ -33,7 +33,7 @@ app.post('/api/quiz', async (req, res) => {
     return res.status(400).json({ erro: 'Este email já usou a versão gratuita.' });
   }
 
-  // Monta o prompt para a IA
+  // Prompt enviado à IA
   const prompt = `
 Baseado nas seguintes respostas:
 1. ${respostas[0]}
@@ -45,15 +45,15 @@ Use linguagem clara e amigável. Limite o total a 600 caracteres.
   `;
 
   try {
-    const resposta = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
+    const resposta = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
       max_tokens: 600
     });
 
-    const resultado = resposta.data.choices[0].message.content;
+    const resultado = resposta.choices[0].message.content;
 
-    // Envia o resultado por email
+    // Envio por email
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
